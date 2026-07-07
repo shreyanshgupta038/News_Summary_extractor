@@ -1,173 +1,182 @@
-# 📰 News Backend — LLM-Powered Scraper & Summarizer
+# 📰 News Summary Extractor
 
-A FastAPI backend that scrapes news articles and summarizes them using a local Gemma 2B LLM. No external API calls — everything runs offline on your machine.
-
----
-
-## 🗂 Project Structure
-
-```
-news_backend/
-├── main.py          # FastAPI app with /scrape and /summarize endpoints
-├── model.py         # Gemma 2B model loader + summarization logic
-├── scrapper.py      # Article scraper (Firstpost, TOI, etc.)
-├── gemma-model/     # Local Gemma 2B model weights (not in git)
-└── venv/            # Python virtual environment
-```
+An AI-powered news article extraction and summarization system. It utilizes a **FastAPI** backend to scrape articles and summarize them using a local **Gemma 2B LLM**, paired with a **Flutter** mobile/desktop frontend application to present summaries, view topics, and export results.
 
 ---
 
-## ⚙️ Requirements
+## 🏗️ Project Architecture
 
-- Python 3.13 (NOT 3.14 — PyTorch doesn't support it yet)
-- 10GB+ free RAM (runs entirely on CPU, no GPU needed)
-- ~5GB free disk space for model weights
-- Windows 10/11
-
-> ⚠️ **Important**: You must increase your Windows paging file size before running (see below). Without this the model will crash on load even if you have enough RAM.
+```
+                       ┌──────────────────────┐
+                       │   News Article URL   │
+                       └──────────┬───────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                          NEWS BACKEND                            │
+│                                                                  │
+│  ┌─────────────────┐       ┌──────────────┐      ┌────────────┐  │
+│  │   FastAPI App   ├──────►│ SmartScraper ├─────►│ News Sites │  │
+│  │   (main.py)     │       │(scrapper.py) │      │  (HTML)    │  │
+│  └────────┬────────┘       └──────────────┘      └────────────┘  │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐       ┌──────────────┐                      │
+│  │  Summarizer     ├──────►│   Gemma LLM  │                      │
+│  │  (model.py)     │       │  (or CPU     │                      │
+│  └─────────────────┘       │   Fallback)  │                      │
+│                            └──────────────┘                      │
+└─────────────────────────────────┬────────────────────────────────┘
+                                  │ JSON Response
+                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                         NEWS FRONTEND                            │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │                      Flutter Application                   │  │
+│  │  • Sleek Indigo Dark Mode UI                               │  │
+│  │  • Interactive Segmented Tabs (Scraped Content / Summary)  │  │
+│  │  • Native PDF Export & Social Sharing                      │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🚀 Setup
+## 🗂️ Directory Structure
 
-### 1. Clone / download the project
 ```
-D:\news_backend\
+News_Summary_extractor/
+├── news_backend/             # Python FastAPI Backend
+│   ├── main.py               # API endpoints (/scrape, /summarize, /info)
+│   ├── model.py              # Gemma model integration & fallback summarizer
+│   ├── scrapper.py           # XPath-based article parser
+│   ├── requirements.txt      # Python dependencies list
+│   └── .env.example          # Environment template
+│
+├── news_frontend/            # Flutter Application
+│   ├── lib/
+│   │   └── main.dart         # Completed Flutter UI & client integration
+│   ├── pubspec.yaml          # Flutter package definitions & assets
+│   └── android/ ...          # Android build files
+│
+├── .gitignore                # Global workspace gitignore
+└── README.md                 # Project documentation (this file)
 ```
-
-### 2. Create virtual environment with Python 3.13
-```powershell
-py -3.13 -m venv venv
-venv\Scripts\Activate.ps1
-```
-
-### 3. Set temp to D: if C: is low on space
-```powershell
-$env:TEMP = "D:\tmp"
-$env:TMP = "D:\tmp"
-mkdir D:\tmp
-```
-
-### 4. Install PyTorch (CPU version)
-```powershell
-pip install torch
-```
-
-### 5. Install remaining dependencies
-```powershell
-pip install transformers fastapi uvicorn requests lxml pydantic accelerate
-```
-
-### 6. Add model weights
-Place the Gemma 2B model folder at:
-```
-D:\news_backend\gemma-model\
-```
-It should contain `config.json`, `tokenizer.json`, and `.safetensors` files.
 
 ---
 
-## 🪟 Windows Paging File Fix (Required)
+## 🚀 Getting Started
 
-If you get `OSError: The paging file is too small`, do this:
-
-1. `Win + R` → type `sysdm.cpl` → Enter
-2. Advanced → Performance → Settings → Advanced → Virtual Memory → Change
-3. Uncheck "Automatically manage"
-4. Select **D:** → Custom size → Initial: `8192` Max: `16384` → Set
-5. Click OK → **Restart PC**
-
-> Note: Set it on D: not C: — C: needs to have enough free space for the paging file.
+### ⚡ Quick Start (Fallback Mode)
+You don't need a GPU or to download a 5GB LLM model immediately to test the app flow. If the Gemma model weights are missing, the backend **gracefully falls back** to a text-extraction summarizer so the scraping, API, and Flutter frontend remain fully functional.
 
 ---
 
-## ▶️ Running the Server
+### 1. Backend Setup & Run
 
-```powershell
-cd D:\news_backend
-venv\Scripts\Activate.ps1
+#### Prerequisites
+* Python 3.10 to 3.13 (PyTorch is required)
+* Windows 10/11 or macOS/Linux
+
+#### Installation Steps
+1. Navigate to the `news_backend` directory:
+   ```bash
+   cd news_backend
+   ```
+2. Create and activate a Python virtual environment:
+   ```powershell
+   # Windows PowerShell
+   py -m venv venv
+   .\venv\Scripts\Activate.ps1
+   ```
+3. Install the dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **(Optional)** Add Gemma LLM weights:
+   * Create a folder named `gemma-model` inside `news_backend/` (or set the `MODEL_PATH` environment variable).
+   * Place the Gemma 2B instruction-tuned model weights (e.g., Hugging Face files: `config.json`, `tokenizer.json`, and `.safetensors` files) in that folder.
+   * If you skip this, the backend automatically runs in **Fallback Mode** using an extractive summarizer.
+
+#### Start the API Server
+```bash
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
-
-Server runs at `http://0.0.0.0:8000`. Teammates on the same WiFi can access it at `http://<your-ip>:8000`.
-
-> Model takes ~30-60 seconds to load on first startup.
+* The API will start at `http://localhost:8000`.
+* The health check is available at `http://localhost:8000/`.
+* The model status check is available at `http://localhost:8000/info`.
 
 ---
 
-## 📡 API Endpoints
+### 2. Frontend Setup & Run
 
-### `GET /`
-Health check.
-```json
-{"status": "Server is running ✅"}
-```
+#### Prerequisites
+* Flutter SDK (v3.10.0 or higher)
 
-### `POST /scrape`
-Scrapes a news article URL and returns raw content.
+#### Installation Steps
+1. Navigate to the `news_frontend` directory:
+   ```bash
+   cd news_frontend
+   ```
+2. Fetch package dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Run the Flutter application on your emulator, device, or web browser:
+   ```bash
+   flutter run
+   ```
 
-**Request:**
-```json
-{"url": "https://www.firstpost.com/india/some-article.html"}
-```
+#### Application Features
+* **Settings Gear**: Update the Server IP/URL directly inside the app (useful if running the backend on a different device on your local WiFi network).
+* **Connection Status Bar**: View real-time connection status (`Offline`, `API Connected • Fallback Mode Active`, or `API Connected • Gemma LLM Active`).
+* **Share Summary**: Tap to share summary contents to other applications via the native share sheet.
+* **Export PDF**: Generates and saves a clean, formatted PDF file containing the article details and extracted summaries to your local device.
 
-**Response:**
+---
+
+## 🧠 Summarization Modes
+
+1. **Gemma 2B LLM Mode (Offline & Private)**
+   * When Gemma weights are placed in the path, it loads the model on CPU.
+   * Employs zero-shot instruction prompting to simultaneously detect up to 3 distinct topics and summarize each into an 80+ word paragraph.
+
+2. **Rule-Based Fallback Mode**
+   * Automatically activated if local model files are not found.
+   * Utilizes a text-analysis algorithm to score sentences and construct formatted, structured summaries on-the-fly with zero CPU overhead.
+
+---
+
+## 📡 Backend API Reference
+
+### `GET /info`
+Check model state.
 ```json
 {
-  "title": "Article title",
-  "author": "Firstpost News Desk",
-  "date": "2026-03-22T13:27:19+05:30",
-  "content": "Full article text..."
+  "loaded": false,
+  "is_fallback": true,
+  "load_error": null,
+  "model_path": "C:\\projects\\News_Summary_extractor\\news_backend\\gemma-model"
 }
 ```
 
 ### `POST /summarize`
-Scrapes + summarizes the article using Gemma 2B.
-
-**Request:**
-```json
-{"url": "https://www.firstpost.com/india/some-article.html"}
-```
-
-**Response:**
-```json
-{
-  "title": "...",
-  "author": "...",
-  "date": "...",
-  "content": "...",
-  "summary": "TOPIC_1_NAME: ...\nTOPIC_1_SUMMARY: ...\n..."
-}
-```
-
----
-
-## 🧠 How Summarization Works
-
-We use a **zero-shot LLM-based approach** using Gemma 2B-IT for simultaneous topic identification and summarization. Rather than training a separate classifier, we leverage the instruction-following capability of the model through structured prompting.
-
-Each article is passed to the model with a strict output format requiring up to 3 `TOPIC_NAME` + `TOPIC_SUMMARY` pairs. The model identifies latent themes from the article content without any labeled data or fine-tuning — making it a fully **unsupervised, training-free pipeline**.
-
----
-
-## ⚠️ Known Issues
-
-- `/summarize` is slow on CPU (~2-3 mins per request)
-- Scraper may fail on paywalled or JS-heavy articles
-- Model must be present locally — no HuggingFace download at runtime
-
----
-
-## 🛠 Supported News Sources
-
-- Firstpost
-- Times of India
-- The Hindu
-- Hindustan Times
-- Indian Express
-- Economic Times
-- Livemint
-- The Wire
-- Scroll
-- The Print
-- Outlook India
+Scrapes a URL, extracts details, and returns summaries.
+* **Request Body:**
+  ```json
+  {
+    "url": "https://www.firstpost.com/india/sample-news-article.html"
+  }
+  ```
+* **Response Body:**
+  ```json
+  {
+    "title": "Article Title Example",
+    "author": "News Desk",
+    "date": "2026-07-07T12:00:00+05:30",
+    "content": "Full article text content...",
+    "summary": "TOPIC_1_NAME: Overview\nTOPIC_1_SUMMARY: ...",
+    "fallback": true
+  }
+  ```
